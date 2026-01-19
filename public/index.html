@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Bot Scheduler</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Discord Message Scheduler</h1>
+        
+        <div class="card">
+            <h2>Schedule New Message</h2>
+            <form id="scheduleForm">
+                <div class="form-group">
+                    <label for="channelId">Channel ID</label>
+                    <input type="text" id="channelId" name="channelId" placeholder="123456789..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="datetime">Date & Time</label>
+                    <input type="datetime-local" id="datetime" name="datetime" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="recurrence">Recurrence</label>
+                    <select id="recurrence" name="recurrence">
+                        <option value="once">Once</option>
+                        <option value="yearly">Every Year</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="image">Image</label>
+                    <input type="file" id="image" name="image" accept="image/*" required>
+                </div>
+
+                <button type="submit">Schedule Message</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Upcoming Schedules</h2>
+            <ul id="scheduleList" class="schedule-list">
+                <!-- Items will be populated here -->
+            </ul>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
