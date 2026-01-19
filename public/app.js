@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadSchedules();
+    loadChannels();
 
     // Set default datetime to now + 5 mins
     const now = new Date();
@@ -73,5 +74,34 @@ async function deleteTask(id) {
         loadSchedules();
     } catch (error) {
         console.error('Error deleting task:', error);
+    }
+}
+
+async function loadChannels() {
+    const select = document.getElementById('channelId');
+    try {
+        const response = await fetch('/api/channels');
+        if (response.status === 503) {
+            select.innerHTML = '<option value="" disabled>Bot starting...</option>';
+            setTimeout(loadChannels, 2000); // Retry if bot not ready
+            return;
+        }
+
+        const channels = await response.json();
+
+        select.innerHTML = '<option value="" disabled selected>Select a channel</option>';
+        if (channels.length === 0) {
+            select.innerHTML += '<option value="" disabled>No text channels found</option>';
+        }
+
+        channels.forEach(channel => {
+            const option = document.createElement('option');
+            option.value = channel.id;
+            option.textContent = channel.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading channels:', error);
+        select.innerHTML = '<option value="" disabled>Error loading channels</option>';
     }
 }

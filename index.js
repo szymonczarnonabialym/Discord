@@ -10,8 +10,10 @@ app.listen(PORT, () => {
 });
 
 // Start Bot
-if (process.env.DISCORD_TOKEN) {
-    client.login(process.env.DISCORD_TOKEN);
+if (process.env.DISCORD_TOKEN && process.env.DISCORD_TOKEN !== 'your_bot_token_here') {
+    client.login(process.env.DISCORD_TOKEN).catch(err => {
+        console.error("Failed to login bot:", err.message);
+    });
 } else {
-    console.log("No DISCORD_TOKEN found in .env. Bot will not start until token is added.");
+    console.log("No valid DISCORD_TOKEN found in .env. Bot will not start until token is added.");
 }

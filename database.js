@@ -1,16 +1,65 @@
-const Database = require('better-sqlite3');
-const db = new Database('schedules.db');
+const fs = require('fs');
+const path = require('path');
 
-// Initialize database
-db.exec(`
-    CREATE TABLE IF NOT EXISTS schedules (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        channelId TEXT NOT NULL,
-        imagePath TEXT NOT NULL,
-        scheduledTime INTEGER NOT NULL,
-        recurrence TEXT DEFAULT 'once',
-        status TEXT DEFAULT 'pending'
-    );
-`);
+const DB_PATH = path.join(__dirname, 'schedules.json');
 
-module.exports = db;
+// Ensure DB file exists
+if (!fs.existsSync(DB_PATH)) {
+    fs.writeFileSync(DB_PATH, JSON.stringify({ tasks: [] }, null, 2));
+}
+
+function readDB() {
+    try {
+        const data = fs.readFileSync(DB_PATH, 'utf8');
+        const parsed = JSON.parse(data);
+        if (!parsed || !Array.isArray(parsed.tasks)) {
+            return { tasks: [] };
+        }
+        return parsed;
+    } catch (error) {
+        return { tasks: [] };
+    }
+}
+
+function writeDB(data) {
+    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+}
+
+module.exports = {
+    getPending: () => {
+        const db = readDB();
+        return db.tasks.filter(t => t.status === 'pending');
+    },
+    getAll: () => {
+        return readDB().tasks;
+    },
+    add: (task) => {
+        const db = readDB();
+        const id = Date.now();
+        db.tasks.push({ ...task, id, status: 'pending' });
+        writeDB(db);
+    },
+    delete: (id) => {
+        const db = readDB();
+        // Convert id to number just in case
+        const numId = parseInt(id);
+        db.tasks = db.tasks.filter(t => t.id !== numId);
+        writeDB(db);
+    },
+    updateStatus: (id, status) => {
+        const db = readDB();
+        const task = db.tasks.find(t => t.id === id);
+        if (task) {
+            task.status = status;
+            writeDB(db);
+        }
+    },
+    reschedule: (id, newTime) => {
+        const db = readDB();
+        const task = db.tasks.find(t => t.id === id);
+        if (task) {
+            task.scheduledTime = newTime;
+            writeDB(db);
+        }
+    }
+};

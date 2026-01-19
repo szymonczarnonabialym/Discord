@@ -1,0 +1,20 @@
+{
+  "tasks": [
+    {
+      "channelId": "987146391560290374",
+      "imagePath": "uploads\\4fbd4d9913b0240436486644527f2388",
+      "scheduledTime": 1768861560000,
+      "recurrence": "once",
+      "id": 1768861513871,
+      "status": "sent"
+    },
+    {
+      "channelId": "987146391560290374",
+      "imagePath": "uploads\\fc4ac2dcd8d18c5b0555f586b2da872e",
+      "scheduledTime": 1768861920000,
+      "recurrence": "once",
+      "id": 1768861871876,
+      "status": "sent"
+    }
+  ]
+}

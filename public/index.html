@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Discord Bot Scheduler</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="container">
         <h1>Discord Message Scheduler</h1>
-        
+
         <div class="card">
             <h2>Schedule New Message</h2>
             <form id="scheduleForm">
                 <div class="form-group">
-                    <label for="channelId">Channel ID</label>
-                    <input type="text" id="channelId" name="channelId" placeholder="123456789..." required>
+                    <label for="channelId">Select Channel</label>
+                    <select id="channelId" name="channelId" required>
+                        <option value="" disabled selected>Loading channels...</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -50,4 +54,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>
