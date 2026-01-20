@@ -21,10 +21,19 @@ async function checkSchedules() {
             try {
                 const channel = await client.channels.fetch(task.channelId);
                 if (channel) {
-                    await channel.send({
-                        files: [task.imagePath] // Send the image
-                    });
-                    console.log(`Sent scheduled message ${task.id}`);
+                    const messageOptions = {
+                        content: task.message || ''
+                    };
+
+                    if (task.imagePath) {
+                        messageOptions.files = [task.imagePath];
+                    }
+
+                    // Don't send empty message
+                    if (messageOptions.content || messageOptions.files) {
+                        await channel.send(messageOptions);
+                        console.log(`Sent scheduled message ${task.id}`);
+                    }
 
                     // Handle Recurrence
                     if (task.recurrence === 'yearly') {

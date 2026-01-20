@@ -28,6 +28,11 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="message">Message (Optional)</label>
+                    <textarea id="message" name="message" rows="3" placeholder="Enter text message..."></textarea>
+                </div>
+
+                <div class="form-group">
                     <label for="recurrence">Recurrence</label>
                     <select id="recurrence" name="recurrence">
                         <option value="once">Once</option>
@@ -36,8 +41,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="image">Image</label>
-                    <input type="file" id="image" name="image" accept="image/*" required>
+                    <label for="image">Image (Optional)</label>
+                    <input type="file" id="image" name="image" accept="image/*">
                 </div>
 
                 <button type="submit">Schedule Message</button>

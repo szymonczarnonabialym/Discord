@@ -54,6 +54,17 @@ module.exports = {
             writeDB(db);
         }
     },
+    update: (id, data) => {
+        const db = readDB();
+        const taskIndex = db.tasks.findIndex(t => t.id === id);
+        if (taskIndex !== -1) {
+            // Merge existing task with new data, ensuring we don't overwrite ID or status unless intended
+            // We only update fields provided in data, but keep old imagePath if new one isn't provided (handled in server.js but good to be safe)
+            const oldTask = db.tasks[taskIndex];
+            db.tasks[taskIndex] = { ...oldTask, ...data };
+            writeDB(db);
+        }
+    },
     reschedule: (id, newTime) => {
         const db = readDB();
         const task = db.tasks.find(t => t.id === id);

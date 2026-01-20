@@ -15,6 +15,32 @@
       "recurrence": "once",
       "id": 1768861871876,
       "status": "sent"
+    },
+    {
+      "channelId": "987146391560290374",
+      "imagePath": "uploads\\image-1768907083833-179751727.png",
+      "scheduledTime": 1768907100000,
+      "recurrence": "once",
+      "id": 1768907083836,
+      "status": "sent"
+    },
+    {
+      "channelId": "987146329715265546",
+      "imagePath": "uploads\\image-1768907470770-529545707.jpg",
+      "scheduledTime": 1768907520000,
+      "recurrence": "once",
+      "id": 1768907470771,
+      "status": "sent"
+    },
+    {
+      "channelId": "987146391560290374",
+      "channelName": "Czarno na Białym Sponsor - #📕│cke-dodatkowy-angielski",
+      "message": "Test test test ",
+      "imagePath": "uploads\\image-1768907770751-90843845.png",
+      "scheduledTime": 1768907820000,
+      "recurrence": "once",
+      "id": 1768907770754,
+      "status": "sent"
     }
   ]
 }
