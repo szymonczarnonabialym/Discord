@@ -51,4 +51,22 @@ async function checkSchedules() {
     }
 }
 
-module.exports = client;
+const { ChannelType } = require('discord.js');
+
+// ... existing code ...
+
+function getChannels() {
+    const guildId = process.env.GUILD_ID;
+    if (!client.isReady()) return null;
+    if (!guildId) return [];
+
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return [];
+
+    return guild.channels.cache
+        .filter(c => c.type === ChannelType.GuildText)
+        .map(c => ({ id: c.id, name: c.name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+module.exports = { client, getChannels };

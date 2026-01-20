@@ -123,8 +123,8 @@ app.delete('/api/schedule/:id', (req, res) => {
 
 // API: Get channels
 app.get('/api/channels', (req, res) => {
-    const bot = require('./bot');
-    const channels = bot.getChannels();
+    const { getChannels } = require('./bot');
+    const channels = getChannels();
     if (!channels) {
         return res.status(503).json({ error: 'Bot not ready' });
     }
