@@ -49,22 +49,24 @@ const isAuthenticated = (req, res, next) => {
 };
 
 // Health Checks (Public - above auth)
-app.get('/ping', (req, res) => res.send('pong'));
+app.get('/ping', (req, res) => res.send('pong-v3'));
 
 app.get('/api/diagnose', (req, res) => {
     try {
-        const { client } = require('./bot');
+        const botModule = require('./bot');
+        const client = botModule.client || botModule; // Support both old and new exports
         res.json({
             status: 'online',
+            version: 'v3',
             node_version: process.version,
-            bot_ready: client ? client.isReady() : false,
+            bot_ready: client ? (typeof client.isReady === 'function' ? client.isReady() : !!client.user) : false,
             token_present: !!process.env.DISCORD_TOKEN,
             guild_id_present: !!process.env.GUILD_ID,
             uptime: process.uptime(),
             time: new Date().toISOString()
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: err.message, stack: err.stack });
     }
 });
 
