@@ -49,21 +49,22 @@ const isAuthenticated = (req, res, next) => {
 };
 
 // Health Checks (Public - above auth)
-app.get('/ping', (req, res) => res.send('pong-v3'));
+app.get('/ping', (req, res) => res.send('pong-v4'));
 
 app.get('/api/diagnose', (req, res) => {
     try {
         const botModule = require('./bot');
-        const client = botModule.client || botModule; // Support both old and new exports
+        const client = botModule.client || botModule;
         res.json({
             status: 'online',
-            version: 'v3',
+            version: 'v4',
             node_version: process.version,
             bot_ready: client ? (typeof client.isReady === 'function' ? client.isReady() : !!client.user) : false,
             token_present: !!process.env.DISCORD_TOKEN,
             guild_id_present: !!process.env.GUILD_ID,
             uptime: process.uptime(),
-            time: new Date().toISOString()
+            time: new Date().toISOString(),
+            timestamp: Date.now()
         });
     } catch (err) {
         res.status(500).json({ error: err.message, stack: err.stack });
@@ -88,9 +89,14 @@ app.post('/api/login', (req, res) => {
 // API: Get all pending future schedules
 app.get('/api/schedules', (req, res) => {
     const now = Date.now();
-    const pendingTasks = db.getAll().filter(t =>
-        t.status === 'pending' && t.scheduledTime > now
-    );
+    const allTasks = db.getAll();
+    const pendingTasks = allTasks.filter(t => {
+        const isFuture = t.scheduledTime > now;
+        const isPending = t.status === 'pending';
+        return isPending && isFuture;
+    });
+
+    console.log(`[API] Returning ${pendingTasks.length} pending tasks out of ${allTasks.length}. Current time: ${now}`);
     res.json(pendingTasks);
 });
 
