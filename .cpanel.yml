@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/$USER/public_html/discord-bot
+    - /bin/cp -R * $DEPLOYPATH
