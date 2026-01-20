@@ -123,12 +123,32 @@ app.delete('/api/schedule/:id', (req, res) => {
 
 // API: Get channels
 app.get('/api/channels', (req, res) => {
-    const { getChannels } = require('./bot');
-    const channels = getChannels();
-    if (!channels) {
-        return res.status(503).json({ error: 'Bot not ready' });
+    try {
+        const { getChannels } = require('./bot');
+        const channels = getChannels();
+        if (!channels) {
+            // Check if bot is actualy logged in
+            const { client } = require('./bot');
+            if (!client.isReady()) return res.status(503).json({ error: 'Bot starting or login failed' });
+            return res.json([]);
+        }
+        res.json(channels);
+    } catch (error) {
+        console.error("Error in /api/channels:", error);
+        res.status(500).json({ error: error.message });
     }
-    res.json(channels);
+});
+
+// Diagnostic Endpoint
+app.get('/api/diagnose', (req, res) => {
+    const { client } = require('./bot');
+    res.json({
+        node_version: process.version,
+        bot_ready: client ? client.isReady() : false,
+        token_present: !!process.env.DISCORD_TOKEN,
+        guild_id_present: !!process.env.GUILD_ID,
+        uptime: process.uptime()
+    });
 });
 
 module.exports = app;
