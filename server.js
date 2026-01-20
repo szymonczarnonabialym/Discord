@@ -5,7 +5,15 @@ const path = require('path');
 const db = require('./database');
 const dayjs = require('dayjs');
 
+const fs = require('fs');
+
 const app = express();
+
+// Ensure uploads directory exists
+if (!fs.existsSync('uploads')) {
+    fs.mkdirSync('uploads');
+}
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'uploads/')
