@@ -146,7 +146,12 @@ app.put('/api/schedule/:id', upload.single('image'), (req, res) => {
 
 // API: Delete schedule
 app.delete('/api/schedule/:id', (req, res) => {
-    db.deleteTask(parseInt(req.params.id));
+    if (db.delete) {
+        db.delete(parseInt(req.params.id));
+    } else {
+        // Fallback or error if db.delete is missing (should not happen based on inspection)
+        console.error("db.delete is not defined");
+    }
     res.json({ success: true });
 });
 

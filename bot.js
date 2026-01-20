@@ -41,7 +41,23 @@ async function checkSchedules() {
                         db.reschedule(task.id, nextYear);
                         console.log(`Rescheduled task ${task.id} for next year`);
                     } else {
-                        db.updateStatus(task.id, 'sent');
+                        // AUTO-CLEANUP: Delete file and remove from DB
+                        if (task.imagePath && fs.existsSync(task.imagePath)) {
+                            try {
+                                fs.unlinkSync(task.imagePath);
+                                console.log(`Deleted image file: ${task.imagePath}`);
+                            } catch (err) {
+                                console.error(`Failed to delete image: ${err}`);
+                            }
+                        }
+
+                        if (db.delete) {
+                            db.delete(task.id);
+                            console.log(`Deleted task ${task.id} from database`);
+                        } else {
+                            console.error('db.delete function is missing!');
+                            db.updateStatus(task.id, 'sent'); // Fallback
+                        }
                     }
                 }
             } catch (error) {
