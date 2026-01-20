@@ -37,19 +37,36 @@ app.use(session({
 
 app.use(express.json());
 
-// Auth Middleware
+// Auth Middleware (Defined before use)
 const isAuthenticated = (req, res, next) => {
-    // Exclude login page and API from protection
     if (req.path === '/login.html' || req.path === '/api/login' || req.path.startsWith('/style.css')) {
         return next();
     }
-
     if (req.session.authenticated) {
         return next();
     }
-
     res.redirect('/login.html');
 };
+
+// Health Checks (Public - above auth)
+app.get('/ping', (req, res) => res.send('pong'));
+
+app.get('/api/diagnose', (req, res) => {
+    try {
+        const { client } = require('./bot');
+        res.json({
+            status: 'online',
+            node_version: process.version,
+            bot_ready: client ? client.isReady() : false,
+            token_present: !!process.env.DISCORD_TOKEN,
+            guild_id_present: !!process.env.GUILD_ID,
+            uptime: process.uptime(),
+            time: new Date().toISOString()
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 app.use(isAuthenticated);
 
@@ -139,16 +156,6 @@ app.get('/api/channels', (req, res) => {
     }
 });
 
-// Diagnostic Endpoint
-app.get('/api/diagnose', (req, res) => {
-    const { client } = require('./bot');
-    res.json({
-        node_version: process.version,
-        bot_ready: client ? client.isReady() : false,
-        token_present: !!process.env.DISCORD_TOKEN,
-        guild_id_present: !!process.env.GUILD_ID,
-        uptime: process.uptime()
-    });
-});
+
 
 module.exports = app;
