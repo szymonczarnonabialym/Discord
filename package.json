@@ -11,6 +11,7 @@
     "discord.js": "^14.25.1",
     "dotenv": "^16.6.1",
     "express": "^4.22.1",
+    "express-session": "^1.18.2",
     "multer": "^1.4.5-lts.1",
     "node-json-db": "^2.4.2"
   }

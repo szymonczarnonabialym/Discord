@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logowanie | Discord Scheduler</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: #1a1b1e;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+        }
+
+        .login-card h2 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+            border: none;
+        }
+
+        .login-card p {
+            text-align: center;
+            color: #b5bac1;
+            margin-bottom: 2rem;
+        }
+
+        #loginError {
+            color: #fa777c;
+            background: rgba(250, 119, 124, 0.1);
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            display: none;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card login-card">
+        <h2>Witaj ponownie!</h2>
+        <p>Cieszymy się, że Cię znów widzimy!</p>
+
+        <div id="loginError">Błędny login lub hasło.</div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label>LOGIN</label>
+                <input type="text" id="username" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label>HASŁO</label>
+                <input type="password" id="password" required autocomplete="current-password">
+            </div>
+            <button type="submit">Zaloguj się</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('loginError');
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    window.location.href = '/index.html';
+                } else {
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                alert('Błąd połączenia z serwerem.');
+            }
+        });
+    </script>
+</body>
+
+</html>

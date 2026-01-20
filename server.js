@@ -1,4 +1,5 @@
 const express = require('express');
+const session = require('express-session');
 const multer = require('multer');
 const path = require('path');
 const db = require('./database');
@@ -18,25 +19,56 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-app.use(express.static('public'));
-app.use('/uploads', express.static('uploads')); // Serve uploaded images
+// Session Configuration
+app.use(session({
+    secret: 'discord-planer-secret-key-123',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+}));
+
 app.use(express.json());
+
+// Auth Middleware
+const isAuthenticated = (req, res, next) => {
+    // Exclude login page and API from protection
+    if (req.path === '/login.html' || req.path === '/api/login' || req.path.startsWith('/style.css')) {
+        return next();
+    }
+
+    if (req.session.authenticated) {
+        return next();
+    }
+
+    res.redirect('/login.html');
+};
+
+app.use(isAuthenticated);
+
+app.use(express.static('public'));
+app.use('/uploads', express.static('uploads'));
+
+// API: Login
+app.post('/api/login', (req, res) => {
+    const { username, password } = req.body;
+    if (username === 'Szymon' && password === 'Discordplaner2026@') {
+        req.session.authenticated = true;
+        return res.json({ success: true });
+    }
+    res.status(401).json({ error: 'Błędny login lub hasło' });
+});
 
 // API: Get all schedules
 app.get('/api/schedules', (req, res) => {
-    const tasks = db.getPending().sort((a, b) => a.scheduledTime - b.scheduledTime);
-    res.json(tasks);
+    res.json(db.getAll());
 });
 
 // API: Create new schedule
 app.post('/api/schedule', upload.single('image'), (req, res) => {
     const { datetime, channelId, channelName, recurrence, message } = req.body;
-
-    // Image is optional
     const imagePath = req.file ? req.file.path : null;
     const scheduledTime = dayjs(datetime).valueOf();
 
-    // Validation: Require either message OR image
     if (!message && !imagePath) {
         return res.status(400).json({ error: 'Must provide either message or image.' });
     }
@@ -77,38 +109,18 @@ app.put('/api/schedule/:id', upload.single('image'), (req, res) => {
 
 // API: Delete schedule
 app.delete('/api/schedule/:id', (req, res) => {
-    db.delete(req.params.id);
+    db.deleteTask(parseInt(req.params.id));
     res.json({ success: true });
 });
 
-// API: Get Channels
-app.get('/api/channels', async (req, res) => {
-    try {
-        const client = require('./bot');
-        if (!client.isReady()) {
-            return res.status(503).json({ error: 'Bot not ready yet' });
-        }
-
-        const channels = [];
-        // Iterate over all guilds the bot is in
-        client.guilds.cache.forEach(guild => {
-            guild.channels.cache.forEach(channel => {
-                // Filter for text channels where bot can send messages
-                // ChannelType.GuildText = 0
-                if (channel.type === 0) {
-                    channels.push({
-                        id: channel.id,
-                        name: `${guild.name} - #${channel.name}`
-                    });
-                }
-            });
-        });
-
-        res.json(channels);
-    } catch (error) {
-        console.error("Error fetching channels:", error);
-        res.status(500).json({ error: 'Failed to fetch channels' });
+// API: Get channels
+app.get('/api/channels', (req, res) => {
+    const bot = require('./bot');
+    const channels = bot.getChannels();
+    if (!channels) {
+        return res.status(503).json({ error: 'Bot not ready' });
     }
+    res.json(channels);
 });
 
 module.exports = app;
