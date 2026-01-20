@@ -85,9 +85,11 @@ app.post('/api/login', (req, res) => {
     res.status(401).json({ error: 'Błędny login lub hasło' });
 });
 
-// API: Get all schedules
+// API: Get all pending schedules
 app.get('/api/schedules', (req, res) => {
-    res.json(db.getAll());
+    const allTasks = db.getAll();
+    const pendingTasks = allTasks.filter(t => t.status === 'pending');
+    res.json(pendingTasks);
 });
 
 // API: Create new schedule
