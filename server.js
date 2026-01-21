@@ -175,7 +175,18 @@ app.get('/api/channels', (req, res) => {
 // AI Integration
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-app.post('/api/generate-content', upload.single('image'), async (req, res) => {
+// Wrapper for upload to catch errors
+const uploadMiddleware = (req, res, next) => {
+    upload.single('image')(req, res, (err) => {
+        if (err) {
+            console.error("Multer Error:", err);
+            return res.status(400).json({ error: "Image upload failed: " + err.message });
+        }
+        next();
+    });
+};
+
+app.post('/api/generate-content', uploadMiddleware, async (req, res) => {
     try {
         console.log("--> AI Request Received");
         const { topic, channelId, channelName, startTime, delayDays } = req.body;
@@ -272,5 +283,11 @@ app.post('/api/generate-content', upload.single('image'), async (req, res) => {
 });
 
 
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error("Unhandled Server Error:", err);
+    res.status(500).send("Internal Server Error: " + err.message);
+});
 
 module.exports = app;
