@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (error) {
                 console.error('AI Error:', error);
-                alert('Connection failed: ' + error.message);
+                alert('SZCZEGÓŁY BŁĘDU: ' + error.message);
             } finally {
                 btn.textContent = originalText;
                 btn.disabled = false;
