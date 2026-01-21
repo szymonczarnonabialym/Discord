@@ -287,7 +287,7 @@ app.post('/api/generate-content', uploadMiddleware, async (req, res) => {
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error("Unhandled Server Error:", err);
-    res.status(500).send("Internal Server Error: " + err.message);
+    res.status(500).json({ error: "Internal Server Error: " + err.message });
 });
 
 module.exports = app;
