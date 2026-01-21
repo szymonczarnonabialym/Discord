@@ -157,11 +157,11 @@ app.delete('/api/schedule/:id', (req, res) => {
 
 // API: Get channels
 app.get('/api/channels', (req, res) => {
+    // ... existing code ...
     try {
         const { getChannels } = require('./bot');
         const channels = getChannels();
         if (!channels) {
-            // Check if bot is actualy logged in
             const { client } = require('./bot');
             if (!client.isReady()) return res.status(503).json({ error: 'Bot starting or login failed' });
             return res.json([]);
@@ -170,6 +170,71 @@ app.get('/api/channels', (req, res) => {
     } catch (error) {
         console.error("Error in /api/channels:", error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// AI Integration
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+app.post('/api/generate-content', async (req, res) => {
+    try {
+        const { topic, channelId, channelName, startTime, delayDays } = req.body;
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        if (!apiKey) {
+            return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
+        }
+
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+        const prompt = `
+        Jesteś nauczycielem i ekspertem. Stwórz zadanie edukacyjne i jego rozwiązanie na temat: "${topic}".
+        
+        Wymagania:
+        1. Treść ma być angażująca i sformatowana pod Discorda (używaj **pogrubień**, emoji itp.).
+        2. Zwróć wynik TYLKO w formacie JSON (bez markdowna ```json```).
+        3. Struktura JSON:
+        {
+            "task_content": "Treść samego zadania...",
+            "solution_content": "Treść rozwiązania..."
+        }
+        `;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        let text = response.text();
+
+        // Cleanup potential markdown code blocks if AI adds them
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        const content = JSON.parse(text);
+
+        // Schedule Task
+        const taskTime = dayjs(startTime).valueOf();
+        db.add({
+            channelId,
+            channelName,
+            message: content.task_content,
+            scheduledTime: taskTime,
+            recurrence: 'once'
+        });
+
+        // Schedule Solution
+        const solutionTime = dayjs(startTime).add(parseInt(delayDays), 'day').valueOf();
+        db.add({
+            channelId,
+            channelName,
+            message: `✅ **Rozwiązanie zadania!**\n\n${content.solution_content}`,
+            scheduledTime: solutionTime,
+            recurrence: 'once'
+        });
+
+        res.json({ success: true, count: 2 });
+
+    } catch (error) {
+        console.error("AI Error:", error);
+        res.status(500).json({ error: "Failed to generate content: " + error.message });
     }
 });
 

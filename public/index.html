@@ -12,7 +12,13 @@
     <div class="container">
         <h1>Discord Message Scheduler</h1>
 
-        <div class="card">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('manual')">Manual Schedule</button>
+            <button class="tab-btn" onclick="switchTab('ai')">🤖 AI Generator</button>
+        </div>
+
+        <!-- Manual Schedule Form -->
+        <div id="manual-section" class="card">
             <h2>Schedule New Message</h2>
             <form id="scheduleForm">
                 <div class="form-group">
@@ -46,6 +52,41 @@
                 </div>
 
                 <button type="submit">Schedule Message</button>
+            </form>
+        </div>
+
+        <!-- AI Generator Form -->
+        <div id="ai-section" class="card" style="display: none;">
+            <h2>AI Content Generator (Gemini)</h2>
+            <p style="color: #aaa; font-size: 0.9em; margin-bottom: 15px;">
+                Generates a <b>Task</b> for now and a <b>Solution</b> for later automatically.
+            </p>
+            <form id="aiForm">
+                <div class="form-group">
+                    <label for="ai-channelId">Select Channel</label>
+                    <select id="ai-channelId" name="channelId" required>
+                        <option value="" disabled selected>Loading channels...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="ai-topic">Topic / Subject</label>
+                    <textarea id="ai-topic" name="topic" rows="2"
+                        placeholder="e.g. Obliczanie delty, Czasowniki nieregularne..." required></textarea>
+                </div>
+
+                <div class="form-group-row">
+                    <div class="form-group" style="flex:1; margin-right:10px;">
+                        <label for="ai-startTime">Task Start Time</label>
+                        <input type="datetime-local" id="ai-startTime" name="startTime" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="ai-delayDays">Solution Delay (Days)</label>
+                        <input type="number" id="ai-delayDays" name="delayDays" value="2" min="1" max="14" required>
+                    </div>
+                </div>
+
+                <button type="submit" id="ai-submit-btn">✨ Generate & Schedule Loop</button>
             </form>
         </div>
 

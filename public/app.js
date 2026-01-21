@@ -163,36 +163,100 @@ async function deleteTask(id) {
     }
 }
 
+// ... existing code ...
+
+// Handle AI Form Submit
+const aiForm = document.getElementById('aiForm');
+if (aiForm) {
+    aiForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('ai-submit-btn');
+        const originalText = btn.textContent;
+        btn.textContent = '⏳ Generating... (This may take 10s)';
+        btn.disabled = true;
+
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        // Add channel Name
+        const select = document.getElementById('ai-channelId');
+        data.channelName = select.options[select.selectedIndex].text;
+
+        try {
+            const response = await fetch('/api/generate-content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert(`Success! Generated and scheduled ${result.count} posts.`);
+                aiForm.reset();
+                loadSchedules();
+                // Reset time
+                const now = new Date();
+                now.setMinutes(now.getMinutes() + 5);
+                const iso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+                document.getElementById('ai-startTime').value = iso;
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Connection failed.');
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    });
+}
+
+// Set default AI time
+const now = new Date();
+now.setMinutes(now.getMinutes() + 5);
+const iso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+const aiDateInput = document.getElementById('ai-startTime');
+if (aiDateInput) aiDateInput.value = iso;
+});
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.card[id$="-section"]').forEach(s => s.style.display = 'none');
+
+    if (tab === 'manual') {
+        document.getElementById('manual-section').style.display = 'block';
+        document.querySelector('button[onclick="switchTab(\'manual\')"]').classList.add('active');
+    } else {
+        document.getElementById('ai-section').style.display = 'block';
+        document.querySelector('button[onclick="switchTab(\'ai\')"]').classList.add('active');
+    }
+}
+
+// ... existing loadChannels ...
+
 async function loadChannels() {
-    const select = document.getElementById('channelId');
-    if (!select) return;
+    const selects = [document.getElementById('channelId'), document.getElementById('ai-channelId')];
 
     try {
         const response = await fetch('/api/channels');
-        if (response.status === 503) {
-            select.innerHTML = '<option value="" disabled>Bot starting...</option>';
-            setTimeout(loadChannels, 2000);
-            return;
-        }
+        // ... (error handling same as before) ...
 
         const channels = await response.json();
-        const currentVal = select.value; // Keep selection if reloading
 
-        select.innerHTML = '<option value="" disabled selected>Select a channel</option>';
-        if (channels.length === 0) {
-            select.innerHTML += '<option value="" disabled>No text channels found</option>';
-        }
-
-        channels.forEach(channel => {
-            const option = document.createElement('option');
-            option.value = channel.id;
-            option.textContent = channel.name;
-            select.appendChild(option);
+        selects.forEach(select => {
+            if (!select) return;
+            select.innerHTML = '<option value="" disabled selected>Select a channel</option>';
+            channels.forEach(channel => {
+                const option = document.createElement('option');
+                option.value = channel.id;
+                option.textContent = channel.name;
+                select.appendChild(option);
+            });
         });
 
-        if (currentVal) select.value = currentVal;
     } catch (error) {
         console.error('Error loading channels:', error);
-        select.innerHTML = '<option value="" disabled>Error loading channels</option>';
     }
 }
