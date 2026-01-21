@@ -177,16 +177,21 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 app.post('/api/generate-content', upload.single('image'), async (req, res) => {
     try {
+        console.log("--> AI Request Received");
         const { topic, channelId, channelName, startTime, delayDays } = req.body;
+        console.log(`Topic: ${topic}, Image: ${req.file ? 'Yes' : 'No'}, Attach: ${req.body.attachImage}`);
+
         const apiKey = process.env.GEMINI_API_KEY;
         const imageFile = req.file;
 
         if (!apiKey) {
+            console.error("Missing API Key");
             return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        console.log("Init Gemini...");
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         let promptParts = [];
 
@@ -222,9 +227,13 @@ app.post('/api/generate-content', upload.single('image'), async (req, res) => {
             });
         }
 
+        console.log("Sending request to Gemini (generateContent)...");
         const result = await model.generateContent(promptParts);
+        console.log("Gemini response received.");
         const response = await result.response;
         let text = response.text();
+        console.log("Response text length:", text.length);
+
 
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
         const content = JSON.parse(text);
