@@ -45,6 +45,10 @@ const isAuthenticated = (req, res, next) => {
     if (req.session.authenticated) {
         return next();
     }
+    // Return 401 for API calls instead of redirecting
+    if (req.path.startsWith('/api/')) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
     res.redirect('/login.html');
 };
 

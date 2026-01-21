@@ -68,6 +68,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: formData
                 });
 
+                // Handle Session Expiry
+                if (response.status === 401) {
+                    alert('Twoja sesja wygasła. Zaloguj się ponownie.');
+                    window.location.href = '/login.html';
+                    return;
+                }
+
                 let result;
                 const contentType = response.headers.get("content-type");
                 if (contentType && contentType.indexOf("application/json") !== -1) {
