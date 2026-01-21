@@ -157,7 +157,6 @@ app.delete('/api/schedule/:id', (req, res) => {
 
 // API: Get channels
 app.get('/api/channels', (req, res) => {
-    // ... existing code ...
     try {
         const { getChannels } = require('./bot');
         const channels = getChannels();
@@ -176,39 +175,63 @@ app.get('/api/channels', (req, res) => {
 // AI Integration
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-app.post('/api/generate-content', async (req, res) => {
+app.post('/api/generate-content', upload.single('image'), async (req, res) => {
     try {
         const { topic, channelId, channelName, startTime, delayDays } = req.body;
         const apiKey = process.env.GEMINI_API_KEY;
+        const imageFile = req.file;
 
         if (!apiKey) {
             return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-        const prompt = `
-        Jesteś nauczycielem i ekspertem. Stwórz zadanie edukacyjne i jego rozwiązanie na temat: "${topic}".
+        let promptParts = [];
+
+        // Base prompt instructions
+        const systemInstruction = `
+        Jesteś nauczycielem i ekspertem. Stwórz post z zadaniem oraz osobny post z rozwiązaniem.
+        Temat lub kontekst: "${topic}".
         
         Wymagania:
-        1. Treść ma być angażująca i sformatowana pod Discorda (używaj **pogrubień**, emoji itp.).
-        2. Zwróć wynik TYLKO w formacie JSON (bez markdowna ```json```).
-        3. Struktura JSON:
+        1. Jeśli otrzymałeś zdjęcie, zadanie ma opierać się na tym zdjęciu (rozwiąż je, ale w poście z zadaniem tylko je opisz/wprowadź).
+        2. Formatowanie Discorda (emoji, bold).
+        3. Wynik TYLKO JSON:
         {
-            "task_content": "Treść samego zadania...",
-            "solution_content": "Treść rozwiązania..."
+            "task_content": "Treść posta z zadaniem (wprowadzenie)...",
+            "solution_content": "Pełne rozwiązanie i wytłumaczenie..."
         }
         `;
 
-        const result = await model.generateContent(prompt);
+        promptParts.push(systemInstruction);
+
+        // Add Image if present
+        if (imageFile) {
+            const mimeType = imageFile.mimetype;
+            const imagePath = imageFile.path;
+            const imageBuffer = fs.readFileSync(imagePath);
+            const base64Image = imageBuffer.toString('base64');
+
+            promptParts.push({
+                inlineData: {
+                    data: base64Image,
+                    mimeType: mimeType
+                }
+            });
+        }
+
+        const result = await model.generateContent(promptParts);
         const response = await result.response;
         let text = response.text();
 
-        // Cleanup potential markdown code blocks if AI adds them
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
         const content = JSON.parse(text);
+
+        // Determine if image should be attached
+        const shouldAttach = req.body.attachImage === 'on' || req.body.attachImage === 'true';
+        const finalImagePath = (shouldAttach && imageFile) ? imageFile.path : null;
 
         // Schedule Task
         const taskTime = dayjs(startTime).valueOf();
@@ -217,7 +240,8 @@ app.post('/api/generate-content', async (req, res) => {
             channelName,
             message: content.task_content,
             scheduledTime: taskTime,
-            recurrence: 'once'
+            recurrence: 'once',
+            imagePath: finalImagePath
         });
 
         // Schedule Solution
