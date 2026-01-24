@@ -53,7 +53,7 @@ const isAuthenticated = (req, res, next) => {
 };
 
 // Health Checks (Public - above auth)
-app.get('/ping', (req, res) => res.send('pong-v5'));
+app.get('/ping', (req, res) => res.send('pong-v2.8-mutex'));
 
 app.get('/api/diagnose', (req, res) => {
     try {

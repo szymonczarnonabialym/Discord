@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 
 // Start Server
 app.listen(PORT, () => {
-    console.log(`Dashboard running on http://localhost:${PORT} (v2.7 - Duplicate Fix)`);
+    console.log(`Dashboard running on http://localhost:${PORT} (v2.8 - Mutex Lock)`);
 });
 
 // Start Bot

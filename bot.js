@@ -1,9 +1,12 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, ChannelType } = require('discord.js');
 const db = require('./database');
 const dayjs = require('dayjs');
 const fs = require('fs');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
+
+// MUTEX: Prevent concurrent scheduler runs
+let isSchedulerRunning = false;
 
 client.once('ready', () => {
     console.log(`Bot logged in as ${client.user.tag}`);
@@ -13,74 +16,80 @@ client.once('ready', () => {
 });
 
 async function checkSchedules() {
-    const now = Date.now();
-    const tasks = db.getPending();
+    // MUTEX CHECK: Skip if already running
+    if (isSchedulerRunning) {
+        console.log('[Scheduler] Skipping - previous run still in progress');
+        return;
+    }
 
-    for (const task of tasks) {
-        if (task.scheduledTime <= now) {
-            // CRITICAL: Mark as processing FIRST to prevent duplicates
-            db.updateStatus(task.id, 'processing');
-            console.log(`Processing task ${task.id}...`);
+    isSchedulerRunning = true;
+    console.log('[Scheduler] Starting check...');
 
-            try {
-                const channel = await client.channels.fetch(task.channelId);
-                if (channel) {
-                    const messageOptions = {
-                        content: task.message || ''
-                    };
+    try {
+        const now = Date.now();
+        const tasks = db.getPending();
 
-                    if (task.imagePath) {
-                        messageOptions.files = [task.imagePath];
-                    }
+        for (const task of tasks) {
+            if (task.scheduledTime <= now) {
+                // CRITICAL: Mark as processing FIRST to prevent duplicates
+                db.updateStatus(task.id, 'processing');
+                console.log(`[Scheduler] Processing task ${task.id}...`);
 
-                    // Don't send empty message
-                    if (messageOptions.content || messageOptions.files) {
-                        await channel.send(messageOptions);
-                        console.log(`Sent scheduled message ${task.id}`);
-                    }
+                try {
+                    const channel = await client.channels.fetch(task.channelId);
+                    if (channel) {
+                        const messageOptions = {
+                            content: task.message || ''
+                        };
 
-                    // Handle Recurrence
-                    if (task.recurrence === 'yearly') {
-                        const nextYear = dayjs(task.scheduledTime).add(1, 'year').valueOf();
-                        db.reschedule(task.id, nextYear);
-                        db.updateStatus(task.id, 'pending'); // Reset to pending for next year
-                        console.log(`Rescheduled task ${task.id} for next year`);
-                    } else {
-                        // AUTO-CLEANUP: Delete file and remove from DB
-                        if (task.imagePath && fs.existsSync(task.imagePath)) {
-                            try {
-                                fs.unlinkSync(task.imagePath);
-                                console.log(`Deleted image file: ${task.imagePath}`);
-                            } catch (err) {
-                                console.error(`Failed to delete image: ${err}`);
-                            }
+                        if (task.imagePath) {
+                            messageOptions.files = [task.imagePath];
                         }
 
-                        if (db.delete) {
-                            db.delete(task.id);
-                            console.log(`Deleted task ${task.id} from database`);
+                        // Don't send empty message
+                        if (messageOptions.content || messageOptions.files) {
+                            await channel.send(messageOptions);
+                            console.log(`[Scheduler] Sent message for task ${task.id}`);
+                        }
+
+                        // Handle Recurrence
+                        if (task.recurrence === 'yearly') {
+                            const nextYear = dayjs(task.scheduledTime).add(1, 'year').valueOf();
+                            db.reschedule(task.id, nextYear);
+                            db.updateStatus(task.id, 'pending'); // Reset to pending for next year
+                            console.log(`[Scheduler] Rescheduled task ${task.id} for next year`);
                         } else {
-                            console.error('db.delete function is missing!');
-                            db.updateStatus(task.id, 'sent'); // Fallback
+                            // AUTO-CLEANUP: Delete file and remove from DB
+                            if (task.imagePath && fs.existsSync(task.imagePath)) {
+                                try {
+                                    fs.unlinkSync(task.imagePath);
+                                    console.log(`[Scheduler] Deleted image: ${task.imagePath}`);
+                                } catch (err) {
+                                    console.error(`[Scheduler] Failed to delete image: ${err}`);
+                                }
+                            }
+
+                            db.delete(task.id);
+                            console.log(`[Scheduler] Deleted task ${task.id} from database`);
                         }
+                    } else {
+                        // Channel not found - mark as error
+                        console.error(`[Scheduler] Channel ${task.channelId} not found for task ${task.id}`);
+                        db.updateStatus(task.id, 'error');
                     }
-                } else {
-                    // Channel not found - mark as error
-                    console.error(`Channel ${task.channelId} not found for task ${task.id}`);
+                } catch (error) {
+                    console.error(`[Scheduler] Failed to execute task ${task.id}:`, error.message);
+                    // Mark as 'error' so it doesn't retry infinitely
                     db.updateStatus(task.id, 'error');
                 }
-            } catch (error) {
-                console.error(`Failed to execute task ${task.id}:`, error);
-                // RECOVERY: Revert to pending so it can be retried
-                db.updateStatus(task.id, 'pending');
             }
         }
+    } finally {
+        // ALWAYS release the mutex
+        isSchedulerRunning = false;
+        console.log('[Scheduler] Check complete.');
     }
 }
-
-const { ChannelType } = require('discord.js');
-
-// ... existing code ...
 
 function getChannels() {
     const guildId = process.env.GUILD_ID;
