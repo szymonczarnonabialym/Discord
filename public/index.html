@@ -30,7 +30,14 @@
 
                 <div class="form-group">
                     <label for="datetime">Date & Time</label>
-                    <input type="datetime-local" id="datetime" name="datetime" required>
+                    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                        <input type="datetime-local" id="datetime" name="datetime" required style="flex: 1;">
+                        <div class="checkbox-group" style="margin: 0;">
+                            <input type="checkbox" id="publishNow" name="publishNow">
+                            <label for="publishNow" style="display:inline; font-weight:normal; cursor: pointer;">🚀
+                                Opublikuj teraz</label>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -49,12 +56,6 @@
                 <div class="form-group">
                     <label for="image">Image (Optional)</label>
                     <input type="file" id="image" name="image" accept="image/*">
-                </div>
-
-                <div class="form-group checkbox-group">
-                    <input type="checkbox" id="publishNow" name="publishNow">
-                    <label for="publishNow" style="display:inline; font-weight:normal;">🚀 Opublikuj od razu (wyślij
-                        teraz na Discord)</label>
                 </div>
 
                 <button type="submit">Schedule Message</button>

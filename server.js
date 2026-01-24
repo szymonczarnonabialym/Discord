@@ -153,6 +153,16 @@ app.post('/api/schedule', upload.single('image'), async (req, res) => {
             await sendMessage(channelId, message, imagePath);
             published = true;
             console.log(`[API] Message instantly published to channel ${channelId}`);
+
+            // AUTO-CLEANUP: Delete file after instant publish
+            if (imagePath && fs.existsSync(imagePath)) {
+                try {
+                    fs.unlinkSync(imagePath);
+                    console.log(`[API] Deleted image after publish: ${imagePath}`);
+                } catch (cleanupErr) {
+                    console.error('[API] Failed to cleanup image:', cleanupErr);
+                }
+            }
         } catch (err) {
             console.error('[API] Instant publish failed:', err.message);
             return res.status(500).json({ error: 'Failed to publish: ' + err.message });
@@ -180,6 +190,16 @@ app.post('/api/schedule', upload.single('image'), async (req, res) => {
             await sendMessage(channelId, message, imagePath);
             published = true;
             console.log(`[API] Message published (no schedule set)`);
+
+            // AUTO-CLEANUP: Delete file after instant publish
+            if (imagePath && fs.existsSync(imagePath)) {
+                try {
+                    fs.unlinkSync(imagePath);
+                    console.log(`[API] Deleted image after publish: ${imagePath}`);
+                } catch (cleanupErr) {
+                    console.error('[API] Failed to cleanup image:', cleanupErr);
+                }
+            }
         } catch (err) {
             console.error('[API] Publish failed:', err.message);
             return res.status(500).json({ error: 'Failed to publish: ' + err.message });

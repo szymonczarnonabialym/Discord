@@ -158,6 +158,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const iso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
     if (document.getElementById('datetime')) document.getElementById('datetime').value = iso;
     if (document.getElementById('ai-startTime')) document.getElementById('ai-startTime').value = iso;
+
+    // Publish Now Logic
+    const publishNowCb = document.getElementById('publishNow');
+    const datetimeInput = document.getElementById('datetime');
+    const submitBtn = document.querySelector('#scheduleForm button[type="submit"]');
+
+    if (publishNowCb && datetimeInput) {
+        publishNowCb.addEventListener('change', () => {
+            if (publishNowCb.checked) {
+                datetimeInput.disabled = true;
+                datetimeInput.required = false;
+                datetimeInput.style.opacity = '0.5';
+                if (!isEditing) submitBtn.textContent = '🚀 Publish Now';
+            } else {
+                datetimeInput.disabled = false;
+                datetimeInput.required = true;
+                datetimeInput.style.opacity = '1';
+                if (!isEditing) submitBtn.textContent = 'Schedule Message';
+            }
+        });
+    }
 });
 
 function resetForm() {
