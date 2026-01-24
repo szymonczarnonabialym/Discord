@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 
 // Start Server
 app.listen(PORT, () => {
-    console.log(`Dashboard running on http://localhost:${PORT} (v2.9 - File Sessions)`);
+    console.log('🚀 Discord Scheduler Bot v3.0 - Instant Publish');
 });
 
 // Start Bot

@@ -68,7 +68,7 @@ const isAuthenticated = (req, res, next) => {
 };
 
 // Health Checks (Public - above auth)
-app.get('/ping', (req, res) => res.send('pong-v2.9-sessions'));
+app.get('/ping', (req, res) => res.send('pong-v3.0-instant'));
 
 // Session Debug (Public)
 app.get('/api/session-check', (req, res) => {
@@ -131,25 +131,61 @@ app.get('/api/schedules', (req, res) => {
 });
 
 // API: Create new schedule
-app.post('/api/schedule', upload.single('image'), (req, res) => {
-    const { datetime, channelId, channelName, recurrence, message } = req.body;
+app.post('/api/schedule', upload.single('image'), async (req, res) => {
+    const { datetime, channelId, channelName, recurrence, message, publishNow } = req.body;
     const imagePath = req.file ? req.file.path : null;
     const scheduledTime = dayjs(datetime).valueOf();
+    const shouldPublishNow = publishNow === 'true';
+    const shouldSchedule = datetime && scheduledTime > Date.now();
 
     if (!message && !imagePath) {
         return res.status(400).json({ error: 'Must provide either message or image.' });
     }
 
-    db.add({
-        channelId,
-        channelName,
-        message,
-        imagePath,
-        scheduledTime,
-        recurrence: recurrence || 'once'
-    });
+    let published = false;
+    let scheduled = false;
 
-    res.json({ success: true });
+    // Instant publish if requested
+    if (shouldPublishNow) {
+        try {
+            const { sendMessage } = require('./bot');
+            await sendMessage(channelId, message, imagePath);
+            published = true;
+            console.log(`[API] Message instantly published to channel ${channelId}`);
+        } catch (err) {
+            console.error('[API] Instant publish failed:', err.message);
+            return res.status(500).json({ error: 'Failed to publish: ' + err.message });
+        }
+    }
+
+    // Also schedule if datetime is in the future
+    if (shouldSchedule) {
+        db.add({
+            channelId,
+            channelName,
+            message,
+            imagePath,
+            scheduledTime,
+            recurrence: recurrence || 'once'
+        });
+        scheduled = true;
+        console.log(`[API] Message scheduled for ${datetime}`);
+    }
+
+    // If neither published nor scheduled, just publish now
+    if (!published && !scheduled) {
+        try {
+            const { sendMessage } = require('./bot');
+            await sendMessage(channelId, message, imagePath);
+            published = true;
+            console.log(`[API] Message published (no schedule set)`);
+        } catch (err) {
+            console.error('[API] Publish failed:', err.message);
+            return res.status(500).json({ error: 'Failed to publish: ' + err.message });
+        }
+    }
+
+    res.json({ success: true, published, scheduled });
 });
 
 // API: Update schedule

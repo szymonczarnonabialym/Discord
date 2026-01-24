@@ -16,23 +16,37 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('channelName', channelName);
         }
 
+        // Add publishNow checkbox value
+        const publishNow = document.getElementById('publishNow').checked;
+        formData.append('publishNow', publishNow ? 'true' : 'false');
+
         const url = isEditing ? `/api/schedule/${editId}` : '/api/schedule';
         const method = isEditing ? 'PUT' : 'POST';
 
         try {
             const response = await fetch(url, { method: method, body: formData });
+            const result = await response.json();
+
             if (response.ok) {
-                alert(isEditing ? 'Updated successfully!' : 'Scheduled successfully!');
+                // Show appropriate message based on what happened
+                if (result.published && result.scheduled) {
+                    alert('✅ Wiadomość opublikowana na Discord i zaplanowana!');
+                } else if (result.published) {
+                    alert('✅ Wiadomość opublikowana na Discord!');
+                } else if (result.scheduled) {
+                    alert(isEditing ? 'Updated successfully!' : 'Scheduled successfully!');
+                }
                 resetForm();
                 loadSchedules();
             } else {
-                alert('Error saving message.');
+                alert('Error: ' + (result.error || 'Unknown error'));
             }
         } catch (error) {
             console.error('Error:', error);
             alert('Failed to connect to server.');
         }
     });
+
 
     // Cancel Edit Button
     if (!document.getElementById('cancelEditBtn')) {

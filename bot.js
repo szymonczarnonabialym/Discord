@@ -105,4 +105,33 @@ function getChannels() {
         .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-module.exports = { client, getChannels };
+// Send message immediately (used by instant publish feature)
+async function sendMessage(channelId, message, imagePath) {
+    if (!client.isReady()) {
+        throw new Error('Bot is not ready');
+    }
+
+    const channel = await client.channels.fetch(channelId);
+    if (!channel) {
+        throw new Error('Channel not found');
+    }
+
+    const messageOptions = {
+        content: message || ''
+    };
+
+    if (imagePath) {
+        messageOptions.files = [imagePath];
+    }
+
+    if (!messageOptions.content && !messageOptions.files) {
+        throw new Error('No content to send');
+    }
+
+    await channel.send(messageOptions);
+    console.log(`[Bot] Instant message sent to channel ${channelId}`);
+    return true;
+}
+
+module.exports = { client, getChannels, sendMessage };
+
