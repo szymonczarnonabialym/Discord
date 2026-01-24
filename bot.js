@@ -18,6 +18,10 @@ async function checkSchedules() {
 
     for (const task of tasks) {
         if (task.scheduledTime <= now) {
+            // CRITICAL: Mark as processing FIRST to prevent duplicates
+            db.updateStatus(task.id, 'processing');
+            console.log(`Processing task ${task.id}...`);
+
             try {
                 const channel = await client.channels.fetch(task.channelId);
                 if (channel) {
@@ -39,6 +43,7 @@ async function checkSchedules() {
                     if (task.recurrence === 'yearly') {
                         const nextYear = dayjs(task.scheduledTime).add(1, 'year').valueOf();
                         db.reschedule(task.id, nextYear);
+                        db.updateStatus(task.id, 'pending'); // Reset to pending for next year
                         console.log(`Rescheduled task ${task.id} for next year`);
                     } else {
                         // AUTO-CLEANUP: Delete file and remove from DB
@@ -59,9 +64,15 @@ async function checkSchedules() {
                             db.updateStatus(task.id, 'sent'); // Fallback
                         }
                     }
+                } else {
+                    // Channel not found - mark as error
+                    console.error(`Channel ${task.channelId} not found for task ${task.id}`);
+                    db.updateStatus(task.id, 'error');
                 }
             } catch (error) {
                 console.error(`Failed to execute task ${task.id}:`, error);
+                // RECOVERY: Revert to pending so it can be retried
+                db.updateStatus(task.id, 'pending');
             }
         }
     }
