@@ -27,12 +27,27 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Session Configuration
+// Session Configuration - FILE-BASED for hosting persistence
+const FileStore = require('session-file-store')(session);
+
+// Ensure sessions directory exists
+if (!fs.existsSync('sessions')) {
+    fs.mkdirSync('sessions');
+}
+
 app.use(session({
+    store: new FileStore({
+        path: './sessions',
+        ttl: 86400, // 24 hours in seconds
+        reapInterval: 3600 // Clean expired sessions every hour
+    }),
     secret: 'discord-planer-secret-key-123',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+    cookie: {
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        httpOnly: true
+    }
 }));
 
 app.use(express.json());
@@ -53,7 +68,17 @@ const isAuthenticated = (req, res, next) => {
 };
 
 // Health Checks (Public - above auth)
-app.get('/ping', (req, res) => res.send('pong-v2.8-mutex'));
+app.get('/ping', (req, res) => res.send('pong-v2.9-sessions'));
+
+// Session Debug (Public)
+app.get('/api/session-check', (req, res) => {
+    res.json({
+        has_session: !!req.session,
+        authenticated: req.session ? req.session.authenticated : false,
+        session_id: req.sessionID || 'none',
+        cookie: req.session ? req.session.cookie : null
+    });
+});
 
 app.get('/api/diagnose', (req, res) => {
     try {
@@ -61,11 +86,12 @@ app.get('/api/diagnose', (req, res) => {
         const client = botModule.client || botModule;
         res.json({
             status: 'online',
-            version: 'v4',
+            version: 'v2.9-sessions',
             node_version: process.version,
             bot_ready: client ? (typeof client.isReady === 'function' ? client.isReady() : !!client.user) : false,
             token_present: !!process.env.DISCORD_TOKEN,
             guild_id_present: !!process.env.GUILD_ID,
+            gemini_key_present: !!process.env.GEMINI_API_KEY,
             uptime: process.uptime(),
             time: new Date().toISOString(),
             timestamp: Date.now()
