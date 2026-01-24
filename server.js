@@ -86,12 +86,13 @@ app.get('/api/diagnose', (req, res) => {
         const client = botModule.client || botModule;
         res.json({
             status: 'online',
-            version: 'v2.9-sessions',
+            version: 'v5.0-AI-FIX',
             node_version: process.version,
             bot_ready: client ? (typeof client.isReady === 'function' ? client.isReady() : !!client.user) : false,
             token_present: !!process.env.DISCORD_TOKEN,
             guild_id_present: !!process.env.GUILD_ID,
-            gemini_key_present: !!process.env.GEMINI_API_KEY,
+            gemini_key_present: !!process.env.GEMINI_API_KEY, // Critical check for AI
+            gemini_key_length: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0,
             uptime: process.uptime(),
             time: new Date().toISOString(),
             timestamp: Date.now()
