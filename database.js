@@ -72,5 +72,15 @@ module.exports = {
             task.scheduledTime = newTime;
             writeDB(db);
         }
+    },
+    claimTask: (id) => {
+        const db = readDB();
+        const task = db.tasks.find(t => t.id === id);
+        if (task && task.status === 'pending') {
+            task.status = 'processing';
+            writeDB(db);
+            return true;
+        }
+        return false;
     }
 };

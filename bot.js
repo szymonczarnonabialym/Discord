@@ -31,56 +31,57 @@ async function checkSchedules() {
 
         for (const task of tasks) {
             if (task.scheduledTime <= now) {
-                // CRITICAL: Mark as processing FIRST to prevent duplicates
-                db.updateStatus(task.id, 'processing');
-                console.log(`[Scheduler] Processing task ${task.id}...`);
+                // CRITICAL: Try to claim the task. If claimTask returns false, another process took it.
+                if (db.claimTask(task.id)) {
+                    console.log(`[Scheduler] Claimed task ${task.id}, processing...`);
 
-                try {
-                    const channel = await client.channels.fetch(task.channelId);
-                    if (channel) {
-                        const messageOptions = {
-                            content: task.message || ''
-                        };
+                    try {
+                        const channel = await client.channels.fetch(task.channelId);
+                        if (channel) {
+                            const messageOptions = {
+                                content: task.message || ''
+                            };
 
-                        if (task.imagePath) {
-                            messageOptions.files = [task.imagePath];
-                        }
-
-                        // Don't send empty message
-                        if (messageOptions.content || messageOptions.files) {
-                            await channel.send(messageOptions);
-                            console.log(`[Scheduler] Sent message for task ${task.id}`);
-                        }
-
-                        // Handle Recurrence
-                        if (task.recurrence === 'yearly') {
-                            const nextYear = dayjs(task.scheduledTime).add(1, 'year').valueOf();
-                            db.reschedule(task.id, nextYear);
-                            db.updateStatus(task.id, 'pending'); // Reset to pending for next year
-                            console.log(`[Scheduler] Rescheduled task ${task.id} for next year`);
-                        } else {
-                            // AUTO-CLEANUP: Delete file and remove from DB
-                            if (task.imagePath && fs.existsSync(task.imagePath)) {
-                                try {
-                                    fs.unlinkSync(task.imagePath);
-                                    console.log(`[Scheduler] Deleted image: ${task.imagePath}`);
-                                } catch (err) {
-                                    console.error(`[Scheduler] Failed to delete image: ${err}`);
-                                }
+                            if (task.imagePath) {
+                                messageOptions.files = [task.imagePath];
                             }
 
-                            db.delete(task.id);
-                            console.log(`[Scheduler] Deleted task ${task.id} from database`);
+                            // Don't send empty message
+                            if (messageOptions.content || messageOptions.files) {
+                                await channel.send(messageOptions);
+                                console.log(`[Scheduler] Sent message for task ${task.id}`);
+                            }
+
+                            // Handle Recurrence
+                            if (task.recurrence === 'yearly') {
+                                const nextYear = dayjs(task.scheduledTime).add(1, 'year').valueOf();
+                                db.reschedule(task.id, nextYear);
+                                db.updateStatus(task.id, 'pending'); // Reset to pending for next year
+                                console.log(`[Scheduler] Rescheduled task ${task.id} for next year`);
+                            } else {
+                                // AUTO-CLEANUP: Delete file and remove from DB
+                                if (task.imagePath && fs.existsSync(task.imagePath)) {
+                                    try {
+                                        fs.unlinkSync(task.imagePath);
+                                        console.log(`[Scheduler] Deleted image: ${task.imagePath}`);
+                                    } catch (err) {
+                                        console.error(`[Scheduler] Failed to delete image: ${err}`);
+                                    }
+                                }
+
+                                db.delete(task.id);
+                                console.log(`[Scheduler] Deleted task ${task.id} from database`);
+                            }
+                        } else {
+                            // Channel not found - mark as error
+                            console.error(`[Scheduler] Channel ${task.channelId} not found for task ${task.id}`);
+                            db.updateStatus(task.id, 'error');
                         }
-                    } else {
-                        // Channel not found - mark as error
-                        console.error(`[Scheduler] Channel ${task.channelId} not found for task ${task.id}`);
+                    } catch (error) {
+                        console.error(`[Scheduler] Failed to execute task ${task.id}:`, error.message);
+                        // Mark as 'error' so it doesn't retry infinitely
                         db.updateStatus(task.id, 'error');
                     }
-                } catch (error) {
-                    console.error(`[Scheduler] Failed to execute task ${task.id}:`, error.message);
-                    // Mark as 'error' so it doesn't retry infinitely
-                    db.updateStatus(task.id, 'error');
                 }
             }
         }
