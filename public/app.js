@@ -264,18 +264,110 @@ async function loadSchedules() {
 }
 
 function editTask(task) {
-    isEditing = true;
-    editId = task.id;
-    document.querySelector('button[type="submit"]').textContent = 'Update Schedule';
-    if (document.getElementById('cancelEditBtn')) document.getElementById('cancelEditBtn').style.display = 'block';
-    if (document.getElementById('channelId')) document.getElementById('channelId').value = task.channelId;
-    if (document.getElementById('message')) document.getElementById('message').value = task.message || '';
-    if (document.getElementById('recurrence')) document.getElementById('recurrence').value = task.recurrence;
+    // Open modal instead of scrolling to form
+    openEditModal(task);
+}
+
+function openEditModal(task) {
+    const modal = document.getElementById('editModal');
+    if (!modal) return;
+
+    // Populate modal form
+    document.getElementById('edit-id').value = task.id;
+
+    // Populate channel dropdown
+    const editChannelSelect = document.getElementById('edit-channelId');
+    const mainChannelSelect = document.getElementById('channelId');
+    if (editChannelSelect && mainChannelSelect) {
+        editChannelSelect.innerHTML = mainChannelSelect.innerHTML;
+        editChannelSelect.value = task.channelId;
+    }
+
+    document.getElementById('edit-message').value = task.message || '';
+    document.getElementById('edit-recurrence').value = task.recurrence || 'once';
+
+    // Format datetime
     const dt = new Date(task.scheduledTime);
     const iso = new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-    if (document.getElementById('datetime')) document.getElementById('datetime').value = iso;
-    document.getElementById('scheduleForm').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('edit-datetime').value = iso;
+
+    // Show current image if exists
+    const imageContainer = document.getElementById('edit-current-image');
+    if (task.imagePath) {
+        const imageUrl = task.imagePath.replace(/\\/g, '/');
+        imageContainer.innerHTML = `<img src="/${imageUrl}" style="max-width: 100px; border-radius: 4px; border: 2px solid #5865F2;">`;
+    } else {
+        imageContainer.innerHTML = '<span style="color: #666;">Brak obrazka</span>';
+    }
+
+    // Show modal
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
 }
+
+function closeEditModal() {
+    const modal = document.getElementById('editModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        document.getElementById('editForm').reset();
+        document.getElementById('edit-current-image').innerHTML = '';
+    }
+}
+
+// Handle edit form submission
+document.addEventListener('DOMContentLoaded', () => {
+    const editForm = document.getElementById('editForm');
+    if (editForm) {
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const formData = new FormData(editForm);
+
+            // Get channel name
+            const select = document.getElementById('edit-channelId');
+            if (select.selectedIndex !== -1) {
+                formData.append('channelName', select.options[select.selectedIndex].text);
+            }
+
+            try {
+                const response = await fetch(`/api/schedule/${id}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('✅ Zaktualizowano!');
+                    closeEditModal();
+                    loadSchedules();
+                } else {
+                    alert('Błąd: ' + (result.error || 'Nieznany błąd'));
+                }
+            } catch (error) {
+                console.error('Edit error:', error);
+                alert('Nie udało się połączyć z serwerem.');
+            }
+        });
+    }
+
+    // Close modal on overlay click
+    const modal = document.getElementById('editModal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeEditModal();
+            }
+        });
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeEditModal();
+        }
+    });
+});
 
 async function deleteTask(id) {
     if (!confirm('Are you sure?')) return;
